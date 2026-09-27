@@ -475,14 +475,16 @@ def get_sink_volume(sink: dict = None) -> tuple:
 
 
 def volume_string(sink: dict = None) -> str:
-    """Return a readable string showing volume settings and percentages.
+    """Return a readable string showing volume percentage.
     """
     vol, basevol = get_sink_volume(sink)
-    s = str( [ v for v in vol ] )
+    """s = str( [ v for v in vol ] )
     s += " / "
     s += str(basevol)
     s += "    "
     s += str( [ int(round(v * 100 /basevol)) for v in vol ] )
+    """
+    s = str( int(round(vol[0] * 100 /basevol)) )
     return s
 
 
@@ -502,17 +504,10 @@ def set_sink_volume(percent: int, sink: dict = None, direction: int = 0):
         print("No active sink")
         return
 
-    # if 'base_volume' not in sink:
-    #     print("No base_volume, using percent")
-    #     subprocess.call(["pactl", "set-sink-volume", "@DEFAULT_SINK@",
-    #                      "%d%%" % newvol])
-    #     return
-
-    basevol = int(sink['base_volume'])
-    maxvol = max(get_sink_volume(sink)[0])
+    maxvol = int(sink['base_volume'])
 
     # Current volume in percent
-    curvol = int(round(maxvol * 100 / basevol))
+    curvol = int(round(get_sink_volume(sink)[1] * 100 / maxvol))
 
     if direction > 0:
         newvol = curvol + percent
@@ -523,14 +518,18 @@ def set_sink_volume(percent: int, sink: dict = None, direction: int = 0):
     else:
         newvol = percent
 
-    volnum = int(newvol * basevol / 100.)
+    if newvol > 100:
+        newvol = 100
+    if newvol < 0:
+        newvol = 0
 
-    if max(sink['volume']) >= basevol:
-        pass
+    volnum = int(newvol * maxvol / 100.)
 
     if DEBUG:
-        print("Current volume %d = %d%%; new volume will be %d + %d%%"
-              % (maxvol, curvol, newvol, volnum))
+        print("Max volume = ", maxvol)
+        print("Current volume = ", curvol, "%")
+        print("New volume = ", newvol, "%")
+        print("Volume number = ", volnum)
     subprocess.call(["pactl", "set-sink-volume", "@DEFAULT_SINK@",
                      str(volnum)])
 
